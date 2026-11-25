@@ -1,0 +1,11 @@
+Lecture 12: Distributed Consensus, Raft, and Partition Tolerance
+
+In distributed storage systems, multiple nodes replicate state across a network so the service remains fault-tolerant when individual machines crash. According to the CAP theorem, when a network partition occurs, a distributed datastore must choose between strong consistency (CP) and high availability (AP), because network partitions cannot be prevented in real clusters.
+
+Raft decomposes the consensus problem into three clear sub-problems: leader election, log replication, and safety. Every Raft node operates in one of three states: Leader, Follower, or Candidate. Time is divided into monotonically increasing logical periods called terms, which allow nodes to detect stale leaders and outdated messages.
+
+During normal operation, the Leader handles all client write requests, appends commands as entries to its write-ahead log, and sends AppendEntries RPCs to Followers. Once a strict majority quorum of nodes persists the log entry, the entry is committed and applied to the state machine. Empty AppendEntries RPCs act as periodic heartbeats so Followers know the Leader is still alive.
+
+If a Follower receives no heartbeat before its randomized election timeout expires (typically 150ms to 300ms), it increments the current term, transitions to Candidate, votes for itself, and broadcasts RequestVote RPCs. Randomizing the election timeout prevents split votes where multiple Candidates endlessly divide the cluster quorum.
+
+Raft guarantees Leader Completeness through the Election Restriction: a Candidate cannot win an election unless its log contains every committed entry from earlier terms. This ensures committed data is never overwritten after failover without needing complex extra log-transfer phases.
